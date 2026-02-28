@@ -1,16 +1,87 @@
-# React + Vite
+# 🐾 Pet Care Management System – Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 📌 Project Title  
+**Pet Care Management System – Frontend**
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 📖 Project Description  
 
-## React Compiler
+The Pet Care Management System is a full-stack web application designed to help pet owners efficiently manage their pets' daily activities, health records, and appointments.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+This repository contains the **frontend** of the application. It provides a modern, responsive, and user-friendly interface built using React and Tailwind CSS. The system supports two roles: **Admin** and **User**, with role-based access control.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## ✨ Features  
+
+### 👤 User Features
+- User authentication (Signup/Login)
+- Add, edit, and delete pets
+- Track daily activities (walking, feeding, medication, etc.)
+- Manage appointments
+- View pet activity history
+- Responsive dashboard UI
+
+### 🛠️ Admin Features
+- View all registered users
+- Manage user accounts
+- Monitor pets and activities
+
+---
+
+## 🛠️ Tech Stack Used  
+
+- React.js  
+- Vite  
+- Tailwind CSS  
+- shadcn/ui  
+- Axios  
+- React Router DOM  
+- Lucide React Icons  
+- React Toastify  
+
+---
+
+## ⚙️ Installation Steps  
+
+### 1️⃣ Clone the repository
+
+https://github.com/jallurividya/pet-care-client.git
+
+### Navigate to the project directory
+
+cd pet-care-frontend
+
+### Install dependencies
+npm install
+
+### Setup environment variables
+
+Create a .env file in the root directory and add:
+
+VITE_API_URL=https://pet-care-server-f3zr.onrender.com
+
+#### Start the development server
+
+npm run dev
+
+The application will run on:
+
+http://localhost:5173
+
+## Deployment Link
+
+Frontend Live URL:
+
+
+
+🔗 Backend API Link
+
+### Backend Repository:
+
+https://github.com/jallurividya/pet-care-server
+
+### Backend Live API:
+
+https://pet-care-server-f3zr.onrender.com
