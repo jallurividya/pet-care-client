@@ -199,17 +199,17 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
           </button>
 
           {/* Comment */}
-          <button
+          {/* <button
             onClick={toggleComments}
             className="flex items-center gap-2 text-gray-600"
           >
             <MessageCircle className="w-6 h-6" />
             <span>{post.comments_count}</span>
-          </button>
+          </button> */}
         </div>
 
         {/* Comments Section */}
-        {showComments && (
+        {/* {showComments && (
           <div className="mt-3 border-t pt-2 space-y-2">
             {comments.map((comment) => (
               <div key={comment.id} className="text-sm flex gap-2 items-start">
@@ -218,7 +218,6 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
               </div>
             ))}
 
-            {/* Add Comment */}
             <div className="flex gap-2">
               <input
                 type="text"
@@ -236,7 +235,7 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
               </button>
             </div>
           </div>
-        )}
+        )} */}
 
       </CardContent>
     </Card>
