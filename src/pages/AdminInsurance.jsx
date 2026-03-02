@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
-import api from "@/api/api";
+import api from "@/services/api";
 import { Edit2, Trash2, Plus } from "lucide-react";
 import {
     Dialog,

@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "react-toastify";
-import api from "@/api/api";
+import api from "@/services/api";
 import PostCard from "@/components/PostCard";
 import { Edit2, Trash2 } from "lucide-react";
 
@@ -29,9 +29,6 @@ export default function SocialPage() {
 
   const [editingPlaydateId, setEditingPlaydateId] = useState(null);
 
-  /* =========================================================
-     FETCH DATA
-  ========================================================= */
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -53,10 +50,6 @@ export default function SocialPage() {
     fetchData();
   }, [fetchData]);
 
-  /* =========================================================
-     POSTS
-  ========================================================= */
-
   const handleCreateOrUpdatePost = async () => {
   if (!newPost.content.trim()) {
     toast.error("Post cannot be empty");
@@ -67,7 +60,6 @@ export default function SocialPage() {
     if (editingPostId) {
       // ✅ UPDATE
       const { data } = await api.put(`/posts/${editingPostId}`, newPost);
-  console.log("Updated post from backend:", data); // 👈 ADD THIS
 
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
@@ -95,7 +87,6 @@ export default function SocialPage() {
 
 
  const handleDeletePost = async (id) => {
-  if (!confirm("Delete this post?")) return;
 
   try {
     await api.delete(`/posts/${id}`);
@@ -106,17 +97,27 @@ export default function SocialPage() {
   }
 };
 
-  const handleEditPost = (post) => {
-    setNewPost({
-      content: post.content,
-      image_url: post.image_url || "",
+ const handleEditPost = async (updatedPost) => {
+  try {
+    const { data } = await api.put(`/posts/${updatedPost.id}`, {
+      content: updatedPost.content,
+      image_url: updatedPost.image_url,
     });
-    setEditingPostId(post.id);
-  };
 
-  /* =========================================================
-     PLAYDATES
-  ========================================================= */
+    // Merge data with the existing post so nothing disappears
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === updatedPost.id
+          ? { ...p, content: data.content, image_url: data.image_url ?? p.image_url }
+          : p
+      )
+    );
+
+    toast.success("Post updated!");
+  } catch (err) {
+    toast.error("Failed to update post");
+  }
+};
 
   const handleCreateOrUpdatePlaydate = async () => {
     if (!newPlaydate.title || !newPlaydate.event_date) {
@@ -172,18 +173,20 @@ export default function SocialPage() {
   };
 
   const handleRSVP = async (id) => {
-    try {
-      const { data } = await api.post(`/playdates/${id}/rsvp`);
+  try {
+    const { data } = await api.post(`/playdates/${id}/rsvp`);
 
-      setPlaydates((prev) =>
-        prev.map((p) => (p.id === id ? data : p))
-      );
+    setPlaydates((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, rsvp_count: data.rsvp_count } : p
+      )
+    );
 
-      toast.success("RSVP successful!");
-    } catch {
-      toast.error("RSVP failed");
-    }
-  };
+    toast.success(data.message);
+  } catch (err) {
+    toast.error(err.response?.data?.message || "RSVP failed");
+  }
+};
 
   if (loading) return <div className="p-6 text-center">Loading...</div>;
 

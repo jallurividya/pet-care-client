@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { PageTransition } from "@/components/PageTransition";
 import { toast } from "react-toastify";
-import api from "@/api/api";
+import api from "@/services/api";
 
 const statusColors = {
   upcoming: "bg-blue-500/15 text-blue-600 border border-blue-500/30",

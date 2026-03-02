@@ -1,215 +1,313 @@
-import { useState, useEffect } from "react";
-import { Plus, Syringe, Loader2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import api from "../services/api";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from "@/components/ui/dialog";
-import { PageTransition } from "@/components/PageTransition";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "react-toastify";
-import api from "@/api/api";
 
-const statusLabels = {
-    "up-to-date": "Up To Date",
-    "coming-soon": "Coming Soon",
-    overdue: "Overdue",
-    "due-today": "Due Today",
-    info: "No Due Date",
-};
+export default function HealthPage() {
+  const [pets, setPets] = useState([]);
+  const [selectedPet, setSelectedPet] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [weightTrend, setWeightTrend] = useState([]);
+  const [mealPlan, setMealPlan] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingLog, setEditingLog] = useState(null);
+  const [updating, setUpdating] = useState(false);
 
-const statusColors = {
-    "up-to-date": "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30",
-    "coming-soon": "bg-amber-500/15 text-amber-600 border border-amber-500/30",
-    overdue: "bg-red-500/15 text-red-600 border border-red-500/30",
-    "due-today": "bg-blue-500/15 text-blue-600 border border-blue-500/30",
-    info: "bg-gray-500/15 text-gray-600 border border-gray-500/30",
-};
-export default function VaccinationsPage() {
-    const [vaccinations, setVaccinations] = useState([]);
-    const [pets, setPets] = useState([]);
-    const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [creating, setCreating] = useState(false);
+  useEffect(() => {
+    const fetchPets = async () => {
+      try {
+        const res = await api.get("/pets");
+        const petsData = res.data || [];
+        setPets(petsData);
+        if (petsData.length > 0) setSelectedPet(petsData[0]);
+      } catch {
+        toast.error("Failed to load pets");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPets();
+  }, []);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
+  useEffect(() => {
+    if (!selectedPet) return;
     const fetchData = async () => {
-        try {
-            const [vaxRes, petRes] = await Promise.all([
-                api.get("/vaccinations"),
-                api.get("/pets"),
-            ]);
-            setVaccinations(vaxRes.data);
-            setPets(petRes.data);
-        } catch (error) {
-            toast({ title: "Failed to load data", variant: "destructive" });
-        } finally {
-            setLoading(false);
-        }
+      try {
+        const logsRes = await api.get(`/health/pet/${selectedPet.id}`);
+        setLogs(logsRes.data || []);
+
+        const trendRes = await api.get(`/health/weight/${selectedPet.id}`);
+        const sortedTrend = (trendRes.data.weightTrend || []).sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
+        setWeightTrend(sortedTrend);
+
+        const mealRes = await api.get(`/nutrition/${selectedPet.id}`);
+        setMealPlan(mealRes.data);
+      } catch {
+        toast.error("Failed to load pet health and nutrition data");
+      }
     };
+    fetchData();
+  }, [selectedPet]);
 
-    const getStatus = (dueDate) => {
-        if (!dueDate) return "info";
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const due = new Date(dueDate);
-        due.setHours(0, 0, 0, 0);
-        if (due < today) return "overdue";
-        const diff = (due - today) / (1000 * 60 * 60 * 24);
-        if (diff === 0) return "due-today";
-        if (diff <= 7) return "coming-soon";
-        return "up-to-date";
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      pet_id: selectedPet.id,
+      date: fd.get("date"),
+      weight: Number(fd.get("weight")),
+      temperature: Number(fd.get("temperature")),
+      notes: fd.get("notes"),
+      symptoms: "",
     };
+    try {
+      setSaving(true);
+      const res = await api.post("/health", payload);
+      setLogs((prev) => [res.data, ...prev]);
+      setWeightTrend((prev) => {
+        const filtered = prev.filter((p) => p.date !== res.data.date);
+        return [...filtered, { date: res.data.date, weight: res.data.weight }].sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
+      });
+      toast.success("Health log added!");
+      setOpen(false);
+      e.currentTarget.reset();
+    } catch {
+      console.log("Failed to add health log");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    const handleAdd = async (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        try {
-            setCreating(true);
-            const res = await api.post("/vaccinations", {
-                pet_id: fd.get("pet_id"),
-                vaccine_name: fd.get("vaccine_name"),
-                given_date: fd.get("given_date"),
-                next_due_date: fd.get("next_due_date"),
-                reminder_sent: false,
-            });
-            setVaccinations(prev => [
-                res.data.vaccination,
-                ...prev
-            ]);
-            toast.success("Added successfully");
-            setOpen(false);
-            e.currentTarget.reset();
-        } catch (error) {
-            console.log(error);
-            
-        } finally {
-            setCreating(false);
-        }
+  const handleDelete = async (id) => {
+    try {
+      const deletedLog = logs.find((l) => l.id === id);
+      await api.delete(`/health/${id}`);
+      setLogs((prev) => prev.filter((l) => l.id !== id));
+      if (deletedLog?.weight) {
+        setWeightTrend((prev) => prev.filter((p) => p.date !== deletedLog.date));
+      }
+      toast.success("Health log deleted");
+    } catch {
+      toast.error("Delete failed");
+    }
+  };
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const updated = {
+      weight: Number(fd.get("weight")),
+      temperature: Number(fd.get("temperature")),
+      notes: fd.get("notes"),
     };
-    if (loading) return <div>Loading vaccinations...</div>;
-    return (
-        <PageTransition>
-            <div className="space-y-6">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                    <h1 className="text-2xl font-heading font-bold">
-                        Vaccinations
-                    </h1>
+    try {
+      setUpdating(true);
+      const res = await api.put(`/health/${editingLog.id}`, updated);
+      setLogs((prev) => prev.map((l) => (l.id === editingLog.id ? res.data : l)));
+      setWeightTrend((prev) =>
+        prev.map((p) => (p.date === editingLog.date ? { ...p, weight: res.data.weight } : p))
+      );
+      setEditingLog(null);
+      toast.success("Health log updated!");
+    } catch {
+      toast.error("Update failed");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
-                    <Dialog open={open} onOpenChange={setOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="rounded-xl">
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Vaccination
-                            </Button>
-                        </DialogTrigger>
+  if (loading) return <div className="p-4">Loading pet data...</div>;
 
-                        <DialogContent className="rounded-2xl">
-                            <DialogHeader>
-                                <DialogTitle>Add Vaccination</DialogTitle>
-                            </DialogHeader>
+  const chartData = weightTrend.map((item) => ({
+    date: item.date.slice(5),
+    weight: item.weight,
+  }));
 
-                            <form onSubmit={handleAdd} className="space-y-4">
-                                {/* Pet Select */}
-                                <div className="space-y-2">
-                                    <Label>Select Pet</Label>
-                                    <Select name="pet_id" required>
-                                        <SelectTrigger className="rounded-xl">
-                                            <SelectValue placeholder="Choose pet" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {pets.map((pet) => (
-                                                <SelectItem
-                                                    key={pet.id}
-                                                    value={pet.id}
-                                                >
-                                                    {pet.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl font-bold">Health & Nutrition</h1>
+        {selectedPet && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2 rounded-xl">
+                <Plus className="h-4 w-4" /> Add Health Log
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>Add Health Log – {selectedPet.name}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input name="date" type="date" required />
+                <Input name="weight" type="number" step="0.1" placeholder="Weight" required />
+                <Input name="temperature" type="number" step="0.1" placeholder="Temperature" required />
+                <Textarea name="notes" placeholder="Notes" />
+                <Button type="submit" disabled={saving} className="w-full">
+                  {saving ? "Saving..." : "Save Log"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
 
-                                <div className="space-y-2">
-                                    <Label>Vaccine Name</Label>
-                                    <Input
-                                        name="vaccine_name"
-                                        className="rounded-xl"
-                                        required
-                                    />
-                                </div>
+      {/* Pet Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {pets.map((pet) => (
+          <Button
+            key={pet.id}
+            variant={selectedPet?.id === pet.id ? "default" : "outline"}
+            onClick={() => setSelectedPet(pet)}
+            className="rounded-xl"
+          >
+            {pet.name}
+          </Button>
+        ))}
+      </div>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-2">
-                                        <Label>Date Given</Label>
-                                        <Input
-                                            name="given_date"
-                                            type="date"
-                                            className="rounded-xl"
-                                            required
-                                        />
-                                    </div>
+      {/* Health Logs Table */}
+      {selectedPet && (
+        <Card className="hover:shadow-md transition-shadow w-full overflow-x-auto">
+          <CardContent className="p-4">
+            <h2 className="text-lg font-bold mb-3">Health Records – {selectedPet.name}</h2>
+            <Table className="min-w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Weight</TableHead>
+                  <TableHead>Temp</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                      No health logs found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell>{log.date}</TableCell>
+                      <TableCell>{log.weight}</TableCell>
+                      <TableCell>{log.temperature}</TableCell>
+                      <TableCell>{log.notes}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button size="icon" variant="outline" onClick={() => setEditingLog(log)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="destructive" onClick={() => handleDelete(log.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
-                                    <div className="space-y-2">
-                                        <Label>Next Due</Label>
-                                        <Input
-                                            name="next_due_date"
-                                            type="date"
-                                            className="rounded-xl"
-                                        />
-                                    </div>
-                                </div>
+      {/* Weight Trend */}
+      {selectedPet && (
+        <Card className="hover:shadow-md transition-shadow w-full">
+          <CardHeader>
+            <CardTitle>Weight Trend</CardTitle>
+          </CardHeader>
+          <CardContent className="w-full h-64">
+            {weightTrend.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No health records yet
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="weight" stroke="#16a34a" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-                                <Button
-                                    type="submit"
-                                    className="w-full rounded-xl"
-                                    disabled={creating}
-                                >
-                                    {creating && (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    )}
-                                    {creating ? "Saving..." : "Save"}
-                                </Button>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-
-                <div className="space-y-3">
-                    {vaccinations.map((v) => {
-                        const status = getStatus(v.next_due_date);
-
-                        return (
-                            <Card
-                                key={v.id}
-                                className="rounded-2xl border-border/50"
-                            >
-                                <CardContent className="flex items-center gap-4 p-4">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                                        <Syringe className="h-5 w-5 text-primary" />
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold">
-                                            {v.vaccine_name}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Pet: {v.pets?.name} · Given: {v.given_date} · Due: {v.next_due_date}
-                                        </p>
-                                    </div>
-                                    <Badge className={`rounded-lg text-xs ${statusColors[status]}`}>
-                                        {statusLabels[status]}
-                                    </Badge>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
-                </div>
+      {/* Nutrition & Meal Plan */}
+      {selectedPet && mealPlan && (
+        <Card className="hover:shadow-md transition-shadow w-full">
+          <CardHeader>
+            <CardTitle>Nutrition & Meal Plan – {selectedPet.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="w-full overflow-x-auto">
+            <p className="mb-4">
+              Daily Calories: <strong>{mealPlan.dailyCalories} kcal</strong>
+            </p>
+            <Table className="min-w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Meal Time</TableHead>
+                  <TableHead>Food</TableHead>
+                  <TableHead>Portion (g)</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mealPlan.meals.map((meal, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{meal.meal_time}</TableCell>
+                    <TableCell>{meal.food}</TableCell>
+                    <TableCell>{meal.portion_g}</TableCell>
+                    <TableCell>{meal.notes}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="mt-4 space-y-1 text-sm">
+              <p><strong>Key Nutrients:</strong> {mealPlan.nutrients.join(", ")}</p>
+              <p><strong>Foods to Avoid:</strong> {mealPlan.avoidFoods.join(", ")}</p>
+              <p><strong>Hydration:</strong> {mealPlan.hydration}</p>
+              {mealPlan.breedNotes && <p><strong>Breed Notes:</strong> {mealPlan.breedNotes}</p>}
             </div>
-        </PageTransition>
-    );
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Health Log Dialog */}
+      {editingLog && (
+        <Dialog open={true} onOpenChange={() => setEditingLog(null)}>
+          <DialogContent className="rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Health Log</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEdit} className="space-y-4">
+              <Input name="weight" type="number" step="0.1" defaultValue={editingLog.weight} required />
+              <Input name="temperature" type="number" step="0.1" defaultValue={editingLog.temperature} required />
+              <Textarea name="notes" defaultValue={editingLog.notes} />
+              <Button type="submit" disabled={updating} className="w-full">
+                {updating ? "Updating..." : "Update Log"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
 }

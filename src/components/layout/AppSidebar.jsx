@@ -11,7 +11,7 @@ const navItems = [
   { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { title: "My Pets", path: "/pets", icon: PawPrint },
   { title: "Activities", path: "/activities", icon: Activity },
-  { title: "Health & Nutritions", path: "/health", icon: HeartPulse },
+  { title: "Health", path: "/health", icon: HeartPulse },
   { title: "Appointments", path: "/appointments", icon: CalendarDays },
   { title: "Vaccinations", path: "/vaccinations", icon: Syringe },
   { title: "Expenses", path: "/expenses", icon: Receipt },

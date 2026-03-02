@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import api from "../api/api";
+import api from "../services/api";
 import {
   Plus,
   Footprints,
@@ -78,22 +78,21 @@ export default function ActivitiesPage() {
 
   // ---------------- NOTIFICATIONS / REMINDERS ----------------
   useEffect(() => {
-  if (!activities || activities.length === 0 || !selectedPet) return;
+    if (!activities || activities.length === 0 || !selectedPet) return;
 
-  const now = new Date();
-  const next24h = new Date();
-  next24h.setHours(now.getHours() + 24);
+    const now = new Date();
+    const next24h = new Date();
+    next24h.setHours(now.getHours() + 24);
 
-  // Filter activities only for the selected pet
-  const filtered = activities.filter(act => act.pet_id === selectedPet.id);
+    const filtered = activities.filter(act => act.pet_id === selectedPet.id);
 
-  filtered.forEach((act) => {
-    const actDate = new Date(act.date);
-    if (actDate >= now && actDate <= next24h) {
-      toast.info(`Upcoming ${act.type} for ${selectedPet.name} on ${act.date}`);
-    }
-  });
-}, [activities, selectedPet]);
+    filtered.forEach((act) => {
+      const actDate = new Date(act.date);
+      if (actDate >= now && actDate <= next24h) {
+        toast.info(`Upcoming ${act.type} for ${selectedPet.name} on ${act.date}`);
+      }
+    });
+  }, [activities, selectedPet]);
 
   // ---------------- ADD ACTIVITY ----------------
   const handleSubmit = async (e) => {
@@ -121,7 +120,6 @@ export default function ActivitiesPage() {
         setOpen(false);
         e.currentTarget.reset();
 
-        // Immediate reminder if within 24h
         const actDate = new Date(res.data.date + "Z");
         const now = new Date();
         const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -153,13 +151,79 @@ export default function ActivitiesPage() {
 
   return (
     <div className="space-y-6">
+      {/* HEADING + ADD BUTTON */}
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Activities</h1>
+
+        {selectedPet && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="rounded-xl flex items-center hover:bg-primary/35 transition-colors">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Activity for {selectedPet.name}
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>Add Activity – {selectedPet.name}</DialogTitle>
+                <DialogDescription>
+                  Fill in activity details for your pet.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label>Type</Label>
+                  <select
+                    name="type"
+                    defaultValue="walk"
+                    className="w-full rounded-xl border px-3 py-2"
+                  >
+                    <option value="walk">Walk</option>
+                    <option value="feeding">Feeding</option>
+                    <option value="play">Play</option>
+                    <option value="medication">Medication</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Duration (minutes)</Label>
+                  <Input name="duration" type="number" required className="rounded-xl" />
+                </div>
+
+                <div>
+                  <Label>Date & Time</Label>
+                  <Input
+                    name="date"
+                    type="datetime-local"
+                    defaultValue={new Date().toISOString().slice(0, 16)}
+                    required
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <Label>Notes</Label>
+                  <Textarea name="notes" rows={2} className="rounded-xl" />
+                </div>
+
+                <Button type="submit" disabled={saving} className="w-full rounded-xl">
+                  {saving ? "Saving..." : "Save Activity"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
       {/* PET TABS */}
       <div className="flex gap-3 flex-wrap">
         {pets.map((pet) => (
           <Button
             key={pet.id}
             variant={selectedPet?.id === pet.id ? "default" : "outline"}
-            className="rounded-xl"
+            className="rounded-xl hover:bg-primary/10 transition-colors"
             onClick={() => setSelectedPet(pet)}
           >
             {pet.name}
@@ -167,78 +231,21 @@ export default function ActivitiesPage() {
         ))}
       </div>
 
-      {/* ADD ACTIVITY */}
-      {selectedPet && (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-xl">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Activity for {selectedPet.name}
-            </Button>
-          </DialogTrigger>
-
-          <DialogContent className="rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>Add Activity – {selectedPet.name}</DialogTitle>
-              <DialogDescription>Fill in activity details for your pet.</DialogDescription>
-            </DialogHeader>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>Type</Label>
-                <select
-                  name="type"
-                  defaultValue="walk"
-                  className="w-full rounded-xl border px-3 py-2"
-                >
-                  <option value="walk">Walk</option>
-                  <option value="feeding">Feeding</option>
-                  <option value="play">Play</option>
-                  <option value="medication">Medication</option>
-                </select>
-              </div>
-
-              <div>
-                <Label>Duration (minutes)</Label>
-                <Input name="duration" type="number" required className="rounded-xl" />
-              </div>
-
-              <div>
-                <Label>Date & Time</Label>
-                <Input
-                  name="date"
-                  type="datetime-local"
-                  defaultValue={new Date().toISOString().slice(0, 16)}
-                  required
-                  className="rounded-xl"
-                />
-              </div>
-
-              <div>
-                <Label>Notes</Label>
-                <Textarea name="notes" rows={2} className="rounded-xl" />
-              </div>
-
-              <Button type="submit" disabled={saving} className="w-full rounded-xl">
-                {saving ? "Saving..." : "Save Activity"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
-
       {/* ACTIVITIES GRID */}
       {selectedPet && activities.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {activities.map((act) => {
             const Icon = typeIcons[act.type];
-            const localDate = new Date(act.date + "Z"); // convert UTC to local
+            const localDate = new Date(act.date + "Z");
             return (
-              <Card key={act.id} className="rounded-2xl">
+              <Card
+                key={act.id}
+                className="rounded-2xl hover:shadow-lg hover:scale-105 transition-transform duration-200"
+              >
                 <CardContent className="p-4 space-y-2">
                   <div className="flex justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 flex items-center justify-center rounded-xl bg-primary/10">
+                      <div className="h-9 w-9 flex items-center justify-center rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
                         {Icon && <Icon className="h-4 w-4 text-primary" />}
                       </div>
                       <div>
@@ -250,7 +257,7 @@ export default function ActivitiesPage() {
                     </div>
                     <Trash2
                       onClick={() => handleDelete(act.id)}
-                      className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-destructive"
+                      className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-destructive hover:scale-110 transition-transform"
                     />
                   </div>
 
@@ -263,7 +270,9 @@ export default function ActivitiesPage() {
       ) : selectedPet ? (
         <p className="text-muted-foreground">No activities yet for this pet.</p>
       ) : (
-        <div className="text-center py-10 text-muted-foreground">No pets found. Add a pet first.</div>
+        <div className="text-center py-10 text-muted-foreground">
+          No pets found. Add a pet first.
+        </div>
       )}
     </div>
   );

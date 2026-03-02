@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../api/api";
+import api from "../services/api";
 import { Shield } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -154,7 +154,7 @@ export default function InsurancePage() {
 
   return (
     <div className="space-y-8">
-
+      <h1 className="text-2xl font-bold">Insurance</h1>
       {/* PET TABS */}
       {pets.length > 0 && (
         <div className="flex gap-3 flex-wrap">

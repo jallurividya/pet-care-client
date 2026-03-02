@@ -1,19 +1,19 @@
-import { useState, useEffect } from "react";
+/* PostCard.jsx */
+import { useState } from "react";
 import { Heart, MessageCircle, Trash2, Edit2, Check, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import api from "@/api/api";
+import api from "@/services/api";
 import { toast } from "react-toastify";
 
-export default function PostCard({ post, currentUserId, onUpdate }) {
+export default function PostCard({ post, currentUserId, onUpdate, onDelete }) {
   const [liked, setLiked] = useState(post.is_liked);
   const [likesCount, setLikesCount] = useState(post.likes_count);
-  const [loading, setLoading] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count);
 
   const [editing, setEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(post.content);
 
-  // ✅ Comments state
   const [comments, setComments] = useState([]);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -21,55 +21,54 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
 
   /* ===================== LIKE ===================== */
   const handleLike = async () => {
-    if (loading) return;
-
-    setLoading(true);
     const prevLiked = liked;
-    const prevCount = likesCount;
+    const prevLikes = likesCount;
 
     setLiked(!prevLiked);
-    setLikesCount(prevLiked ? prevCount - 1 : prevCount + 1);
+    setLikesCount(prevLiked ? prevLikes - 1 : prevLikes + 1);
 
     try {
       if (prevLiked) await api.delete(`/posts/${post.id}/unlike`);
       else await api.post(`/posts/${post.id}/like`);
-    } catch (err) {
+
+      // ✅ Keep all original post fields intact
+      onUpdate({
+        ...post,
+        is_liked: !prevLiked,
+        likes_count: prevLiked ? prevLikes - 1 : prevLikes + 1,
+      });
+    } catch {
       setLiked(prevLiked);
-      setLikesCount(prevCount);
+      setLikesCount(prevLikes);
       toast.error("Action failed");
-    } finally {
-      setLoading(false);
     }
   };
 
   /* ===================== DELETE ===================== */
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this post?")) return;
-
-    try {
-      await api.delete(`/posts/${post.id}`);
-      toast.success("Post deleted!");
-      onUpdate(post.id, "delete");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete post");
-    }
+    onDelete(post.id);
   };
 
   /* ===================== EDIT ===================== */
-  const handleEdit = async () => {
+  const handleEditSave = async () => {
     if (!editedContent.trim()) {
       toast.error("Post content cannot be empty");
       return;
     }
 
     try {
-      await api.put(`/posts/${post.id}`, { content: editedContent });
-      toast.success("Post updated!");
+      const { data } = await api.put(`/posts/${post.id}`, { content: editedContent });
+
+      // ✅ Merge backend response with existing post to keep username/avatar
+      onUpdate({
+        ...post,
+        content: data.content,
+        image_url: data.image_url ?? post.image_url,
+      });
+
       setEditing(false);
-      onUpdate(post.id, "edit", editedContent);
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Failed to update post");
     }
   };
@@ -79,8 +78,7 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
     try {
       const { data } = await api.get(`/posts/${post.id}/comments`);
       setComments(data);
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Failed to fetch comments");
     }
   };
@@ -93,15 +91,22 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
 
+    setCommenting(true);
     try {
-      setCommenting(true);
-      const { data } = await api.post(`/posts/${post.id}/comments`, {
+      const { data } = await api.post(`/posts/${post.id}/comment`, {
         content: newComment,
       });
+
       setComments((prev) => [...prev, data]);
       setNewComment("");
-    } catch (err) {
-      console.error(err);
+      setCommentsCount(commentsCount + 1);
+
+      // ✅ Update parent without removing username/avatar
+      onUpdate({
+        ...post,
+        comments_count: commentsCount + 1,
+      });
+    } catch {
       toast.error("Failed to add comment");
     } finally {
       setCommenting(false);
@@ -126,7 +131,6 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
           </div>
         </div>
 
-        {/* Only show edit/delete if current user is owner */}
         {post.user_id === currentUserId && (
           <div className="flex gap-2">
             {!editing && (
@@ -154,10 +158,8 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
         </div>
       )}
 
-      {/* Content / Actions */}
+      {/* Content & Actions */}
       <CardContent className="p-4 space-y-2">
-
-        {/* Editing */}
         {editing ? (
           <div className="space-y-2">
             <textarea
@@ -167,18 +169,16 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
             />
             <div className="flex gap-2">
               <button
-                onClick={handleEdit}
+                onClick={handleEditSave}
                 className="bg-emerald-600 text-white px-3 py-1 rounded flex items-center"
               >
-                <Check className="inline w-4 h-4 mr-1" />
-                Save
+                <Check className="inline w-4 h-4 mr-1" /> Save
               </button>
               <button
                 onClick={() => setEditing(false)}
                 className="bg-gray-400 text-white px-3 py-1 rounded flex items-center"
               >
-                <X className="inline w-4 h-4 mr-1" />
-                Cancel
+                <X className="inline w-4 h-4 mr-1" /> Cancel
               </button>
             </div>
           </div>
@@ -188,7 +188,6 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
 
         {/* Actions */}
         <div className="flex items-center gap-6 mt-2">
-          {/* Like */}
           <button onClick={handleLike} className="flex items-center gap-2">
             <Heart
               className={`w-6 h-6 transition-transform duration-200 ${
@@ -198,22 +197,20 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
             <span>{likesCount}</span>
           </button>
 
-          {/* Comment */}
-          {/* <button
-            onClick={toggleComments}
-            className="flex items-center gap-2 text-gray-600"
-          >
+          <button onClick={toggleComments} className="flex items-center gap-2 text-gray-600">
             <MessageCircle className="w-6 h-6" />
-            <span>{post.comments_count}</span>
-          </button> */}
+            <span>{commentsCount}</span>
+          </button>
         </div>
 
         {/* Comments Section */}
-        {/* {showComments && (
+        {showComments && (
           <div className="mt-3 border-t pt-2 space-y-2">
             {comments.map((comment) => (
               <div key={comment.id} className="text-sm flex gap-2 items-start">
-                <span className="font-semibold">{comment.user_name}:</span>
+                <span className="font-semibold">
+                  {comment.app_users?.name || "Unknown"}:
+                </span>
                 <span>{comment.content}</span>
               </div>
             ))}
@@ -235,8 +232,7 @@ export default function PostCard({ post, currentUserId, onUpdate }) {
               </button>
             </div>
           </div>
-        )} */}
-
+        )}
       </CardContent>
     </Card>
   );

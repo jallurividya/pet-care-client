@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun, User, Bell, Pencil, Loader2 } from "lucide-react";
-import api from "@/api/api";
+import api from "@/services/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

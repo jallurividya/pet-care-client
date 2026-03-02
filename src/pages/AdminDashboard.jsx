@@ -21,7 +21,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import api from "@/api/api";
+import api from "@/services/api";
 
 export default function AdminDashboard() {
   const { data, isLoading, isError } = useQuery({

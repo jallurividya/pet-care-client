@@ -4,7 +4,7 @@ import React, {
   useState,
   useEffect,
 } from "react";
-import api from "../api/api.js";
+import api from "../services/api.js";
 
 const AuthContext = createContext(null);
 
@@ -56,6 +56,7 @@ export const AuthProvider = ({ children }) => {
 
       // Save to localStorage
       localStorage.setItem("token", token);
+      localStorage.setItem("name", data.name);
       localStorage.setItem("user", JSON.stringify(data));
 
       // Update state
