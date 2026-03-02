@@ -139,6 +139,19 @@ export default function HealthPage() {
   };
 
   if (loading) return <div className="p-6">Loading pet data...</div>;
+  if (pets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
+        <div className="text-5xl mb-4">🐾</div>
+        <h2 className="text-xl font-semibold mb-2">
+          No Pets Added Yet
+        </h2>
+        <p className="text-muted-foreground max-w-sm">
+          Add your furry friend first to start tracking their health journey 💚
+        </p>
+      </div>
+    );
+  }
 
   const chartData = weightTrend.map((item) => ({ date: item.date.slice(5), weight: item.weight }));
 

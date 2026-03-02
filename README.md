@@ -14,7 +14,7 @@ This repository contains the **frontend** of the application. It provides a mode
 ---
 
 ## 🎥 Video Walkthrough
-[Watch the demo here](https://drive.google.com/file/d/1e1rH5lOP7NKsnSqDq91JzfuVbRxFgtuh/view?usp=drive_link)
+[Watch the demo here](https://drive.google.com/file/d/1mLhTcYFimNPbl8jiKAKN79_Pc-zqAcvE/view?usp=sharing)
 
 ---
 
