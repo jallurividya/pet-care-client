@@ -40,8 +40,9 @@ export function TopNavbar() {
       setNotifications((prev) =>
         prev.filter((notif) => notif.id !== id)
       );
+      setIsOpen(false);
     } catch (error) {
-      console.error("Failed to mark notification as read", error);
+      console.log("Failed to mark notification as read", error);
     }
   };
 

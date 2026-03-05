@@ -164,11 +164,11 @@ export default function AppointmentsPage() {
         try {
           const { latitude, longitude } = pos.coords;
           const res = await api.get(
-            `/emergency-vets?lat=${latitude}&lng=${longitude}`
+            `/vet-appointments/emergency-vets?lat=${latitude}&lng=${longitude}`
           );
           setEmergencyVets(res.data.vets || []);
         } catch (err) {
-          console.error(err);
+          console.log(err);
         } finally {
           setLoadingVets(false);
         }
@@ -327,22 +327,22 @@ export default function AppointmentsPage() {
                   <p>No emergency vets found nearby.</p>
                 )}
                 {!loadingVets &&
-                  emergencyVets.map((vet) => (
+                  emergencyVets.map((vet, index) => (
                     <div
-                      key={vet.place_id}
-                      className="border p-2 rounded-md space-y-1"
+                      key={index}
+                      className="border rounded-xl p-3 shadow-sm hover:shadow-md transition space-y-1"
                     >
-                      <h4 className="font-bold">{vet.name}</h4>
-                      <p>{vet.address}</p>
-                      {vet.rating && (
-                        <p>
-                          Rating: {vet.rating} ({vet.user_ratings_total})
-                        </p>
-                      )}
+                      <h4 className="font-semibold text-sm">{vet.name}</h4>
+
+                      <p className="text-xs text-muted-foreground">
+                        {vet.address}
+                      </p>
+
                       <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${vet.location.lat},${vet.location.lng}`}
+                        href={`https://www.google.com/maps?q=${vet.lat},${vet.lon}`}
                         target="_blank"
-                        className="text-blue-600 underline"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 text-xs underline"
                       >
                         Get Directions
                       </a>
@@ -376,9 +376,8 @@ export default function AppointmentsPage() {
             return (
               <Card
                 key={a.id}
-                className={`rounded-2xl border-border/50 ${
-                  status === "cancelled" ? "opacity-60" : ""
-                }`}
+                className={`rounded-2xl border-border/50 ${status === "cancelled" ? "opacity-60" : ""
+                  }`}
               >
                 <CardContent className="flex items-start gap-3 p-4">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
