@@ -40,7 +40,7 @@ export default function PostCard({ post, currentUserId, onUpdate, onDelete }) {
     } catch {
       setLiked(prevLiked);
       setLikesCount(prevLikes);
-      toast.error("Action failed");
+      console.log("Action failed");
     }
   };
 
@@ -69,7 +69,7 @@ export default function PostCard({ post, currentUserId, onUpdate, onDelete }) {
 
       setEditing(false);
     } catch {
-      toast.error("Failed to update post");
+      console.log("Failed to update post");
     }
   };
 
