@@ -79,7 +79,7 @@ export default function PostCard({ post, currentUserId, onUpdate, onDelete }) {
       const { data } = await api.get(`/posts/${post.id}/comments`);
       setComments(data);
     } catch {
-      toast.error("Failed to fetch comments");
+      console.log("Failed to fetch comments");
     }
   };
 
@@ -107,7 +107,7 @@ export default function PostCard({ post, currentUserId, onUpdate, onDelete }) {
         comments_count: commentsCount + 1,
       });
     } catch {
-      toast.error("Failed to add comment");
+      console.log("Failed to add comment");
     } finally {
       setCommenting(false);
     }

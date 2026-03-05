@@ -115,7 +115,7 @@ export default function SocialPage() {
 
     toast.success("Post updated!");
   } catch (err) {
-    toast.error("Failed to update post");
+    console.log("Failed to update post");
   }
 };
 
